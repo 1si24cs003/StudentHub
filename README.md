@@ -8,16 +8,3 @@ Smart Android academic manager built with Jetpack Compose, Room, and Gemini AI. 
 3.Setup Instructions: Guides developers on how to clone, build, and add their own free Gemini API key.
 
 4.MIT License & Credits: Includes the open-source license credited to Abdullah.
-
-
-
-
-
-
-
-
-
-
-
-
-android, jetpack-compose, kotlin, gemini-ai, room-database, student-app, monday-com-ui, material-design-3, ai-assistant
