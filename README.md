@@ -1,7 +1,7 @@
 Smart Android academic manager built with Jetpack Compose, Room, and Gemini AI. Features a Monday.com-style board, multimodal syllabus scanner, and smart exam reminders.
 
 
-1.Overview & Features: Highlights the Monday.com board, start dates, multimodal Gemini AI scanner, exam reminders, and 6 PM background summary alarms.
+1.Overview & Features: Highlights the board, start dates, multimodal Gemini AI scanner, exam reminders, and 6 PM background summary alarms.
 
 2.Tech Stack: Lists Jetpack Compose (Material 3), Room Database, Kotlin Coroutines, Navigation, and Google AI SDK.
 
