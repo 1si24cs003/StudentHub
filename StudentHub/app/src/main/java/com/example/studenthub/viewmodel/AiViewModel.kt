@@ -22,16 +22,25 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
+import android.content.Context
+import android.content.SharedPreferences
+
 class AiViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: AppRepository
+    private val prefs: SharedPreferences = application.getSharedPreferences("student_hub_prefs", Context.MODE_PRIVATE)
+
+    private val _userApiKey = MutableStateFlow(prefs.getString("gemini_api_key", "") ?: "")
+    val userApiKey: StateFlow<String> = _userApiKey.asStateFlow()
 
     init {
         val db = AppDatabase.getDatabase(application)
         repository = AppRepository(db.subjectDao(), db.examDao(), db.noteDao())
     }
-    // Replace with your actual Gemini API Key from Google AI Studio.
-    // In a real app, do not hardcode keys. Consider injecting via BuildConfig.
-    private val apiKey = "AQ.Ab8RN6JUyEy_LeCYGr7bSq4QX6miYOqyGtCCB1OLJJrqHG2FSg"
+
+    fun saveApiKey(newKey: String) {
+        prefs.edit().putString("gemini_api_key", newKey.trim()).apply()
+        _userApiKey.value = newKey.trim()
+    }
 
     private val addSubjectFunction = defineFunction(
         name = "add_subject",
@@ -55,11 +64,13 @@ class AiViewModel(application: Application) : AndroidViewModel(application) {
         requiredParameters = listOf("title", "subjectId", "totalMarks")
     )
 
-    private val generativeModel = GenerativeModel(
-        modelName = "gemini-3.6-flash",
-        apiKey = apiKey,
-        tools = listOf(Tool(listOf(addSubjectFunction, addExamFunction)))
-    )
+    private fun getGenerativeModel(key: String): GenerativeModel {
+        return GenerativeModel(
+            modelName = "gemini-3.6-flash",
+            apiKey = key,
+            tools = listOf(Tool(listOf(addSubjectFunction, addExamFunction)))
+        )
+    }
 
     private val _chatHistory = MutableStateFlow<List<ChatMessage>>(emptyList())
     val chatHistory: StateFlow<List<ChatMessage>> = _chatHistory.asStateFlow()
@@ -70,6 +81,13 @@ class AiViewModel(application: Application) : AndroidViewModel(application) {
     fun sendMessage(prompt: String, bitmap: Bitmap? = null) {
         if (prompt.isBlank() && bitmap == null) return
         
+        val key = _userApiKey.value
+        if (key.isBlank()) {
+            _chatHistory.value = _chatHistory.value + ChatMessage(prompt.ifBlank { "Attached an image." }, isUser = true, image = bitmap)
+            _chatHistory.value = _chatHistory.value + ChatMessage("Please enter your Gemini API Key in the settings (gear icon at the top right) to use AI features.", isUser = false)
+            return
+        }
+
         val userMessage = ChatMessage(prompt.ifBlank { "Attached an image." }, isUser = true, image = bitmap)
         _chatHistory.value = _chatHistory.value + userMessage
         _isLoading.value = true
@@ -81,7 +99,8 @@ class AiViewModel(application: Application) : AndroidViewModel(application) {
                     if (prompt.isNotBlank()) text(prompt)
                 }
                 
-                val chat = generativeModel.startChat()
+                val model = getGenerativeModel(key)
+                val chat = model.startChat()
                 val response = chat.sendMessage(inputContent)
                 
                 response.functionCalls.firstOrNull()?.let { functionCall ->

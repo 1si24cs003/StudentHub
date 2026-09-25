@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -642,8 +643,10 @@ fun PersonalScreen(viewModel: StudentHubViewModel) {
 fun AiAssistantScreen(aiViewModel: AiViewModel) {
     val chatHistory by aiViewModel.chatHistory.collectAsState()
     val isLoading by aiViewModel.isLoading.collectAsState()
+    val userApiKey by aiViewModel.userApiKey.collectAsState()
     var prompt by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showApiKeyDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -652,9 +655,32 @@ fun AiAssistantScreen(aiViewModel: AiViewModel) {
     )
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("AI Assistant") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("AI Assistant") },
+                actions = {
+                    IconButton(onClick = { showApiKeyDialog = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "API Settings")
+                    }
+                }
+            )
+        }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            if (userApiKey.isBlank()) {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.fillMaxWidth().clickable { showApiKeyDialog = true }
+                ) {
+                    Text(
+                        text = "Gemini API Key is missing. Tap here to enter your key.",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+
             LazyColumn(
                 modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
                 contentPadding = PaddingValues(vertical = 8.dp)
@@ -732,6 +758,43 @@ fun AiAssistantScreen(aiViewModel: AiViewModel) {
                     Icon(Icons.Default.Send, contentDescription = "Send")
                 }
             }
+        }
+
+        if (showApiKeyDialog) {
+            var tempKey by remember { mutableStateOf(userApiKey) }
+            AlertDialog(
+                onDismissRequest = { showApiKeyDialog = false },
+                title = { Text("Gemini API Key Settings") },
+                text = {
+                    Column {
+                        Text(
+                            "Get your free API key from Google AI Studio (aistudio.google.com) and enter it below:",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = tempKey,
+                            onValueChange = { tempKey = it },
+                            label = { Text("API Key") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        aiViewModel.saveApiKey(tempKey)
+                        showApiKeyDialog = false
+                    }) { Text("Save") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showApiKeyDialog = false }) { Text("Cancel") }
+                }
+            )
         }
     }
 }

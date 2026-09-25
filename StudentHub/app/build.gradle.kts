@@ -13,7 +13,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.studenthub"
+        applicationId = "com.abdullah.studenthub"
         minSdk = 24
         targetSdk = 37
         versionCode = 1
